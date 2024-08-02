@@ -1,0 +1,151 @@
+Option Explicit
+
+Sub ExecuteStockAnalysis()
+    ' This is the main procedure that will run the entire analysis
+    
+    ' Call the function to set up headers
+    InitializeHeaders
+    
+    ' Call the function to perform the analysis
+    AnalyzeStockData
+
+End Sub
+
+Private Sub InitializeHeaders()
+    ' Define variables
+    Dim sheet As Worksheet
+    
+    ' Add Summary Table Headers to Each sheet
+    For Each sheet In ThisWorkbook.Worksheets
+        With sheet
+            .Range("I1").Value = "Ticker"
+            .Range("J1").Value = "Quarterly Price Change"
+            .Range("K1").Value = "Percentage Change"
+            .Range("L1").Value = "Total Stock Volume"
+            .Range("P1").Value = "Ticker"
+            .Range("Q1").Value = "Value"
+            .Range("O2").Value = "Greatest % Increase"
+            .Range("O3").Value = "Greatest % Decrease"
+            .Range("O4").Value = "Greatest Total Volume"
+        End With
+    Next sheet
+End Sub
+
+Private Sub AnalyzeStockData()
+    ' Define all variables
+    Dim sheet As Worksheet
+    Dim ticker As String
+    Dim totalVolume As Double
+    Dim openingPrice As Double
+    Dim closingPrice As Double
+    Dim priceChange As Double
+    Dim percentChange As Double
+    Dim i As Long
+    Dim lastRow As Long
+    Dim summaryRow As Integer
+    Dim maxIncrease As Double
+    Dim maxDecrease As Double
+    Dim maxVolume As Double
+    Dim maxIncreaseTicker As String
+    Dim maxDecreaseTicker As String
+    Dim maxVolumeTicker As String
+    
+    ' Set initial variable for keeping track of the location of different date's opening price
+    Dim priceRow As Long
+    priceRow = 2
+    
+    ' Loop through each worksheet
+    For Each sheet In ThisWorkbook.Worksheets
+        ' Find last row
+        lastRow = sheet.Cells(sheet.Rows.Count, 1).End(xlUp).Row
+        
+        ' Initialize variables
+        summaryRow = 2
+        totalVolume = 0
+        openingPrice = sheet.Cells(2, 3).Value
+        
+        ' Go through daily trade data
+        For i = 2 To lastRow
+            ' If next row is different ticker, process current ticker
+            If sheet.Cells(i + 1, 1).Value <> sheet.Cells(i, 1).Value Or i = lastRow Then
+                ' Set the ticker name
+                ticker = sheet.Cells(i, 1).Value
+                
+                ' Add final volume for this ticker
+                totalVolume = totalVolume + sheet.Cells(i, 7).Value
+                
+                ' Get closing price
+                closingPrice = sheet.Cells(i, 6).Value
+                
+                ' Calculate changes
+                priceChange = closingPrice - openingPrice
+                If openingPrice <> 0 Then
+                    percentChange = (priceChange / openingPrice)
+                Else
+                    percentChange = 0
+                End If
+                
+                ' Fill out summary table
+                With sheet
+                    .Cells(summaryRow, 9).Value = ticker
+                    .Cells(summaryRow, 10).Value = priceChange
+                    .Cells(summaryRow, 11).Value = percentChange
+                    .Cells(summaryRow, 12).Value = totalVolume
+                    
+                    ' Format percent change as percentage
+                    .Cells(summaryRow, 11).NumberFormat = "0.00%"
+                    
+                    ' Color coding
+                    If priceChange > 0 Then
+                        .Cells(summaryRow, 10).Interior.ColorIndex = 4 ' Green
+                    ElseIf priceChange < 0 Then
+                        .Cells(summaryRow, 10).Interior.ColorIndex = 3 ' Red
+                    Else
+                        .Cells(summaryRow, 10).Interior.ColorIndex = 2 ' White
+                    End If
+                End With
+                
+                ' Move to next summary table row
+                summaryRow = summaryRow + 1
+                
+                ' Reset variables for next ticker
+                totalVolume = 0
+                openingPrice = sheet.Cells(i + 1, 3).Value
+            Else
+                ' Add to ticker total
+                totalVolume = totalVolume + sheet.Cells(i, 7).Value
+            End If
+        Next i
+        
+        ' Set the first ticker's percent change and total stock volume as the greatest ones
+        maxIncrease = sheet.Range("K2").Value
+        maxDecrease = sheet.Range("K2").Value
+        maxVolume = sheet.Range("L2").Value
+        
+        ' Define last row of Ticker column
+        lastRow = sheet.Cells(Rows.Count, "I").End(xlUp).Row
+        
+        ' Loop through each row of Ticker column to find the greatest results
+        For i = 2 To lastRow
+            If sheet.Range("K" & i + 1).Value > maxIncrease Then
+                maxIncrease = sheet.Range("K" & i + 1).Value
+                maxIncreaseTicker = sheet.Range("I" & i + 1).Value
+            ElseIf sheet.Range("K" & i + 1).Value < maxDecrease Then
+                maxDecrease = sheet.Range("K" & i + 1).Value
+                maxDecreaseTicker = sheet.Range("I" & i + 1).Value
+            ElseIf sheet.Range("L" & i + 1).Value > maxVolume Then
+                maxVolume = sheet.Range("L" & i + 1).Value
+                maxVolumeTicker = sheet.Range("I" & i + 1).Value
+            End If
+        Next i
+        
+        ' Print greatest % increase, greatest % decrease, greatest total volume and their ticker names
+        sheet.Range("P2").Value = maxIncreaseTicker
+        sheet.Range("P3").Value = maxDecreaseTicker
+        sheet.Range("P4").Value = maxVolumeTicker
+        sheet.Range("Q2").Value = maxIncrease
+        sheet.Range("Q3").Value = maxDecrease
+        sheet.Range("Q4").Value = maxVolume
+        sheet.Range("Q2:Q3").NumberFormat = "0.00%"
+    Next sheet
+End Sub
