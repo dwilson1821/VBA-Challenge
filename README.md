@@ -11,4 +11,4 @@ This project demonstrates the use of **VBA scripting** to analyze stock market d
 1. **Ticker Symbol Extraction**: Identifies the stock ticker for each row of data.  
 2. **Quarterly Change Calculation**: Calculates the difference between the opening price at the start of the quarter and **closings value it finds it output**
 
-for readability-rich uses
+
